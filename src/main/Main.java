@@ -20,7 +20,7 @@ public class Main extends Canvas implements Runnable {
 	public static final double NANOSECONDS_PER_TICK = 1000000000 / TICKS_PER_SECOND;
 	public static final Color BACKGROUND_COLOR = Color.black;
 	public static final int HEIGHT = 1024, WIDTH = 1024;
-	public static int numberOfParticles = 1500;
+	public static int numberOfParticles = 1000;
 	public static boolean showTempGrid = true;
 	
 	private Thread thread;
@@ -76,7 +76,7 @@ public class Main extends Canvas implements Runnable {
 		IntStream
 			.range(0, numberOfParticles)
 			.parallel()
-			.forEach(i -> particles.add(new Particle((double) i / numberOfParticles * WIDTH, 500 * r.nextDouble())));
+			.forEach(i -> particles.add(new Particle((double) i / numberOfParticles * WIDTH / 2, 500 * r.nextDouble())));
 	}
 	
 	public void run() {

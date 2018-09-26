@@ -9,7 +9,7 @@ public class Particle {
 	/**Acceleration due to gravity.*/
 	private static final double G = 1;
 	/**Maximum particle acceleration allowed by the simulation.*/
-	private static final double MAX_ACCEL = 2;
+	private static final double MAX_ACCEL = 1;
 	private static final double TEMPERATURE_SCALE = 273;
 	
 	private double x, y, vx, vy, temperature;
@@ -37,7 +37,7 @@ public class Particle {
 	
 	public void setDisplayColor() {
 		if(Main.showTempGrid) color = TemperatureGrid.getTempColor(temperature);
-		else color = fluid.color;
+		else color = fluid.getColor();
 	}
 	
 	public void tick() {
@@ -46,11 +46,11 @@ public class Particle {
 		
 		double scaledTemp = temperature / TEMPERATURE_SCALE;
 		double ax = getBrownianValue(), ay = getBrownianValue();
-		double replusion = fluid.replusion;
+		double replusion = fluid.getRepulsion();
 		for(Particle p : Main.particles) {
 			double rSqr = distSqr(p);
-			//repulsion distance increases with temperature squared
-			if(p != this && rSqr < scaledTemp * scaledTemp * fluid.epsilon) {
+			//repulsion distance increases with temperature squared if gaseous
+			if(p != this && rSqr < fluid.getEpsilon() * (temperature > fluid.getBoilingPoint() ? scaledTemp * scaledTemp : 1)) {
 				double rCube = Math.pow(rSqr, 1.5);
 				ax -= (p.x - x) * replusion / rCube;
 				ay -= (p.y - y) * replusion / rCube;
@@ -64,7 +64,7 @@ public class Particle {
 		if(absAx > MAX_ACCEL) ax *= MAX_ACCEL / absAx;
 		if(absAy > MAX_ACCEL) ay *= MAX_ACCEL / absAy;
 		
-		double f = fluid.friction;
+		double f = fluid.getFriction();
 		vx += ax;
 		vy += ay;
 		vx *= f;
@@ -74,13 +74,13 @@ public class Particle {
 	private void calculateTemperature() {
 		int gridX = (int) x >> TemperatureGrid.GRID_COARSENESS;
 		int gridY = (int) y >> TemperatureGrid.GRID_COARSENESS;
-		double t = fluid.rateOfHeatTransfer;
+		double t = fluid.getRateOfHeatTransfer();
 		double newTemp = (1 - t) * temperature + t * TemperatureGrid.grid[gridX][gridY];
 		TemperatureGrid.grid[gridX][gridY] -= newTemp - temperature;
 		temperature = newTemp;
 		
-		Fluid vapor = fluid.vapor;
-		if(vapor != null && temperature > vapor.boilingPoint) fluid = fluid.vapor;
+		Fluid vapor = fluid.getVapor();
+		if(vapor != null && temperature > fluid.getBoilingPoint()) fluid = vapor;
 	}
 	
 	public void updatePosition() {
@@ -108,7 +108,7 @@ public class Particle {
 	}
 	
 	private double getBrownianValue() {
-		double brown = fluid.brown;
+		double brown = fluid.getBrown();
 		return brown * Main.r.nextDouble() - brown / 2;
 	}
 }

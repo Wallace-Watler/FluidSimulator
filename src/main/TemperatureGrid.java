@@ -101,7 +101,6 @@ public class TemperatureGrid {
 						.parallel()
 						.forEach(i -> grid[i][j] = tempTemp[i][j])
 			);
-		grid[grid[0].length / 8][grid.length / 4] += 10000;
 	}
 	
 	public static void render(Graphics g) {
