@@ -37,7 +37,7 @@ public class KeyManager implements KeyListener {
 
 	@Override
 	public void keyReleased(KeyEvent e) {
-		if(e.getKeyCode() == KeyEvent.VK_T) Main.showTempGrid = !Main.showTempGrid;
+		if(e.getKeyCode() == KeyEvent.VK_T) Main.toggleHeatDisplay();
 	}
 
 	@Override

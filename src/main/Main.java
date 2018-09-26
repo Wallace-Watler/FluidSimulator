@@ -114,4 +114,9 @@ public class Main extends Canvas implements Runnable {
 		g.dispose();
 		bs.show();
 	}
+	
+	public static void toggleHeatDisplay() {
+		showTempGrid = !showTempGrid;
+		particles.stream().parallel().forEach(p -> p.setDisplayColor());
+	}
 }

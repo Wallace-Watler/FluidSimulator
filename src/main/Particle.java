@@ -8,36 +8,26 @@ public class Particle {
 	private static final double PARTICLE_SIZE = 4;
 	/**Acceleration due to gravity.*/
 	private static final double G = 1;
-	/**Repulsive force constant. Akin to rigidity.*/
-	private static final double C = 100;
-	/**Force of friction, should be between 0 and 1. Lower numbers = higher friction.
-	 * Akin to viscosity.*/
-	private static final double F = 0.95;
-	/**Rate of heat transfer, should be between 0 and 1.*/
-	private static final double T = 0.05;
-	/**Brownian motion constant.*/
-	private static final double BROWN = 0.5;
-	/**Squared distance within which particles should calculate force due to other particles.
-	 * Akin to compressibility.*/
-	private static final double EPSILON = Math.pow(30, 2);
 	/**Maximum particle acceleration allowed by the simulation.*/
 	private static final double MAX_ACCEL = 2;
 	private static final double TEMPERATURE_SCALE = 273;
 	
 	private double x, y, vx, vy, temperature;
 	private Color color;
+	private Fluid fluid;
 	
 	public Particle(double x, double y) {
-		this(x, y, 0, 0, 273);
+		this(x, y, 0, 0, 273, Fluid.WATER);
 	}
 	
-	public Particle(double x, double y, double vx, double vy, double temperature) {
+	public Particle(double x, double y, double vx, double vy, double temperature, Fluid fluid) {
 		this.x = x;
 		this.y = y;
 		this.vx = vx;
 		this.vy = vy;
 		this.temperature = temperature;
-		color = TemperatureGrid.getTempColor(temperature);
+		this.fluid = fluid;
+		setDisplayColor();
 	}
 	
 	public void render(Graphics g) {
@@ -45,34 +35,52 @@ public class Particle {
 		g.fillOval((int) (x - PARTICLE_SIZE / 2), Main.HEIGHT - (int) (y - PARTICLE_SIZE / 2) - 36, (int) PARTICLE_SIZE, (int) PARTICLE_SIZE);
 	}
 	
+	public void setDisplayColor() {
+		if(Main.showTempGrid) color = TemperatureGrid.getTempColor(temperature);
+		else color = fluid.color;
+	}
+	
 	public void tick() {
-		int gridX = (int) x >> TemperatureGrid.GRID_COARSENESS;
-		int gridY = (int) y >> TemperatureGrid.GRID_COARSENESS;
-		double newTemp = (1 - T) * temperature + T * TemperatureGrid.grid[gridX][gridY];
-		TemperatureGrid.grid[gridX][gridY] -= newTemp - temperature;
-		temperature = newTemp;
-		color = TemperatureGrid.getTempColor(temperature);
-		double scaledTemp = temperature / TEMPERATURE_SCALE;
+		calculateTemperature();
+		setDisplayColor();
 		
+		double scaledTemp = temperature / TEMPERATURE_SCALE;
 		double ax = getBrownianValue(), ay = getBrownianValue();
+		double replusion = fluid.replusion;
 		for(Particle p : Main.particles) {
 			double rSqr = distSqr(p);
-			if(p != this && rSqr < scaledTemp * scaledTemp * EPSILON) {
+			//repulsion distance increases with temperature squared
+			if(p != this && rSqr < scaledTemp * scaledTemp * fluid.epsilon) {
 				double rCube = Math.pow(rSqr, 1.5);
-				ax -= (p.x - x) * C / rCube;
-				ay -= (p.y - y) * C / rCube;
+				ax -= (p.x - x) * replusion / rCube;
+				ay -= (p.y - y) * replusion / rCube;
 			}
 		}
+		//Brownian motion and repulsion force increases
+		//linearly with temperature, add gravity
 		ax *= scaledTemp;
 		ay = ay * scaledTemp - G;
 		double absAx = Math.abs(ax), absAy = Math.abs(ay);
 		if(absAx > MAX_ACCEL) ax *= MAX_ACCEL / absAx;
 		if(absAy > MAX_ACCEL) ay *= MAX_ACCEL / absAy;
 		
+		double f = fluid.friction;
 		vx += ax;
 		vy += ay;
-		vx *= F;
-		vy *= F;
+		vx *= f;
+		vy *= f;
+	}
+	
+	private void calculateTemperature() {
+		int gridX = (int) x >> TemperatureGrid.GRID_COARSENESS;
+		int gridY = (int) y >> TemperatureGrid.GRID_COARSENESS;
+		double t = fluid.rateOfHeatTransfer;
+		double newTemp = (1 - t) * temperature + t * TemperatureGrid.grid[gridX][gridY];
+		TemperatureGrid.grid[gridX][gridY] -= newTemp - temperature;
+		temperature = newTemp;
+		
+		Fluid vapor = fluid.vapor;
+		if(vapor != null && temperature > vapor.boilingPoint) fluid = fluid.vapor;
 	}
 	
 	public void updatePosition() {
@@ -100,6 +108,7 @@ public class Particle {
 	}
 	
 	private double getBrownianValue() {
-		return BROWN * Main.r.nextDouble() - BROWN / 2;
+		double brown = fluid.brown;
+		return brown * Main.r.nextDouble() - brown / 2;
 	}
 }
