@@ -14,7 +14,7 @@ public class Particle {
 	
 	private double x, y, vx, vy, temperature;
 	private Color color;
-	private Fluid fluid;
+	private Fluid fluid, vapor;
 	
 	public Particle(double x, double y) {
 		this(x, y, 0, 0, 273, Fluid.WATER);
@@ -27,6 +27,7 @@ public class Particle {
 		this.vy = vy;
 		this.temperature = temperature;
 		this.fluid = fluid;
+		vapor = fluid.getVapor();
 		setDisplayColor();
 	}
 	
@@ -37,20 +38,21 @@ public class Particle {
 	
 	public void setDisplayColor() {
 		if(Main.showTempGrid) color = TemperatureGrid.getTempColor(temperature);
-		else color = fluid.getColor();
+		else color = currentFluid().getColor();
 	}
 	
 	public void tick() {
-		calculateTemperature();
+		updateTemperature();
 		setDisplayColor();
+		Fluid currentFluid = currentFluid();
 		
 		double scaledTemp = temperature / TEMPERATURE_SCALE;
-		double ax = getBrownianValue(), ay = getBrownianValue();
-		double replusion = fluid.getRepulsion();
+		double ax = getBrownianValue(currentFluid), ay = getBrownianValue(currentFluid);
+		double replusion = currentFluid.getRepulsion();
 		for(Particle p : Main.particles) {
 			double rSqr = distSqr(p);
 			//repulsion distance increases with temperature squared if gaseous
-			if(p != this && rSqr < fluid.getEpsilon() * (temperature > fluid.getBoilingPoint() ? scaledTemp * scaledTemp : 1)) {
+			if(p != this && rSqr < currentFluid.getEpsilon() * (currentFluid == vapor ? scaledTemp * scaledTemp : 1)) {
 				double rCube = Math.pow(rSqr, 1.5);
 				ax -= (p.x - x) * replusion / rCube;
 				ay -= (p.y - y) * replusion / rCube;
@@ -64,23 +66,24 @@ public class Particle {
 		if(absAx > MAX_ACCEL) ax *= MAX_ACCEL / absAx;
 		if(absAy > MAX_ACCEL) ay *= MAX_ACCEL / absAy;
 		
-		double f = fluid.getFriction();
+		double f = currentFluid.getFriction();
 		vx += ax;
 		vy += ay;
 		vx *= f;
 		vy *= f;
 	}
 	
-	private void calculateTemperature() {
+	private void updateTemperature() {
 		int gridX = (int) x >> TemperatureGrid.GRID_COARSENESS;
 		int gridY = (int) y >> TemperatureGrid.GRID_COARSENESS;
 		double t = fluid.getRateOfHeatTransfer();
 		double newTemp = (1 - t) * temperature + t * TemperatureGrid.grid[gridX][gridY];
 		TemperatureGrid.grid[gridX][gridY] -= newTemp - temperature;
 		temperature = newTemp;
-		
-		Fluid vapor = fluid.getVapor();
-		if(vapor != null && temperature > fluid.getBoilingPoint()) fluid = vapor;
+	}
+	
+	private Fluid currentFluid() {
+		return temperature > fluid.getBoilingPoint() ? vapor : fluid;
 	}
 	
 	public void updatePosition() {
@@ -107,8 +110,8 @@ public class Particle {
 		return Math.pow(p.x - x, 2) + Math.pow(p.y - y, 2);
 	}
 	
-	private double getBrownianValue() {
-		double brown = fluid.getBrown();
+	private double getBrownianValue(Fluid f) {
+		double brown = f.getBrown();
 		return brown * Main.r.nextDouble() - brown / 2;
 	}
 }

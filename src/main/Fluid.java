@@ -5,7 +5,7 @@ import java.awt.Color;
 public enum Fluid {
 
 	STEAM(300, 0.999, 0.05, 373, 1, Math.pow(30, 2), Color.white, null),
-	WATER(300, 0.975, 0.01, 373, 0.1, Math.pow(20, 2), Color.blue, STEAM);
+	WATER(300, 0.975, 0.01, 373, 0.1, Math.pow(20, 2), new Color(128, 128, 255), STEAM);
 	
 	/**Repulsive force constant. Akin to rigidity.*/
 	private double repulsion;
