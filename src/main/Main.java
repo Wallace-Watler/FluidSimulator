@@ -1,16 +1,18 @@
 package main;
 
+import main.simulation.Fluid;
+import main.simulation.Particle;
+import main.simulation.TemperatureGrid;
+
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Random;
 import java.util.stream.IntStream;
 
-import javax.swing.JFrame;
+import javax.swing.*;
 
 public class Main extends Canvas implements Runnable {
 
@@ -27,7 +29,6 @@ public class Main extends Canvas implements Runnable {
 	private boolean running = false;
 	
 	public static Random r;
-	public static Collection<Particle> particles;
 	
 	public static void main(String[] args) {
 		JFrame frame = new JFrame("Fluid Simulator");
@@ -41,7 +42,7 @@ public class Main extends Canvas implements Runnable {
 		frame.setLocationRelativeTo(null);
 		frame.requestFocus();
 		frame.setVisible(true);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		frame.pack();
 		frame.add(main);
 		main.start();
@@ -64,7 +65,7 @@ public class Main extends Canvas implements Runnable {
 		}
 	}
 	
-	public void init() {
+	private void init() {
 		this.createBufferStrategy(3);
 		this.addKeyListener(new KeyManager());
 		
@@ -72,11 +73,14 @@ public class Main extends Canvas implements Runnable {
 		
 		TemperatureGrid.init();
 		
-		particles = new HashSet<Particle>();
 		IntStream
-			.range(0, numberOfParticles)
+			.range(0, numberOfParticles / 2)
 			.parallel()
-			.forEach(i -> particles.add(new Particle((double) i / numberOfParticles * WIDTH / 2, 500 * r.nextDouble())));
+			.forEach(i -> new Particle(300, Fluid.WATER));
+		IntStream
+				.range(0, numberOfParticles / 2)
+				.parallel()
+				.forEach(i -> new Particle(300, Fluid.OIL));
 	}
 	
 	public void run() {
@@ -95,28 +99,28 @@ public class Main extends Canvas implements Runnable {
 		stop();
 	}
 	
-	public void tick() {
-		particles.stream().parallel().forEach(p -> p.tick());
-		particles.stream().parallel().forEach(p -> p.updatePosition());
+	private void tick() {
+		Particle.particles.stream().parallel().forEach(Particle::tick);
+		Particle.particles.stream().parallel().forEach(Particle::updatePosition);
 		
 		TemperatureGrid.tick();
 	}
 	
-	public void render() {
+	private void render() {
 		BufferStrategy bs = this.getBufferStrategy();
 		Graphics g = bs.getDrawGraphics();
 		g.setColor(BACKGROUND_COLOR);
 		g.fillRect(0, 0, WIDTH, HEIGHT);
 		
 		if(showTempGrid) TemperatureGrid.render(g);
-		for(Particle p : particles) p.render(g);
+		for(Particle p : Particle.particles) p.render(g);
 		
 		g.dispose();
 		bs.show();
 	}
-	
+
 	public static void toggleHeatDisplay() {
 		showTempGrid = !showTempGrid;
-		particles.stream().parallel().forEach(p -> p.setDisplayColor());
+		Particle.particles.stream().parallel().forEach(Particle::setDisplayColor);
 	}
 }

@@ -1,5 +1,7 @@
 package main;
 
+import main.simulation.TemperatureGrid;
+
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.util.stream.IntStream;

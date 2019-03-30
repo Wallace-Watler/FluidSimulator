@@ -1,4 +1,6 @@
-package main;
+package main.simulation;
+
+import main.Main;
 
 import java.awt.Color;
 import java.awt.Graphics;
